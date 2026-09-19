@@ -13,6 +13,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply fusion-db --remote"
   },
   "devDependencies": {
+    "@cloudflare/workerd-windows-64": "^1.20260918.1",
     "@cloudflare/workers-types": "^5.20260919.1",
     "typescript": "^5.9.3",
     "wrangler": "^4.43.0"

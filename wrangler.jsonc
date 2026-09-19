@@ -1,32 +1,36 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "fusion-chatbot",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-09-19",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
-  },
-  "ai": {
-    "binding": "AI"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "fusion-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "vars": {
-    "APP_ENV": "production",
-    "APP_NAME": "Fusion",
-    "EMAIL_FROM": "Fusion <onboarding@resend.dev>"
-  },
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
-  }
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "fusion-chatbot",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-19",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		"run_worker_first": [
+			"/api/*"
+		]
+	},
+	"ai": {
+		"binding": "AI"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "fusion-db",
+			"database_id": "f249c6af-32ee-4e34-bb66-cc4c413bc64a",
+			"migrations_dir": "migrations"
+		}
+	],
+	"vars": {
+		"APP_ENV": "production",
+		"APP_NAME": "Fusion",
+		"EMAIL_FROM": "Fusion <onboarding@resend.dev>"
+	},
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	}
 }

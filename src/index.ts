@@ -1,12 +1,6 @@
-export interface Env {
-  ASSETS: Fetcher;
-  AI: Ai;
-  DB: D1Database;
-  APP_ENV: string;
-  APP_NAME: string;
-  EMAIL_FROM: string;
+type FusionEnv = Env & {
   RESEND_API_KEY?: string;
-}
+};
 
 type User = { id: string; email: string; display_name: string; is_verified: number };
 type Conversation = { id: string; title: string; created_at: string; updated_at: string };
@@ -80,7 +74,7 @@ function readCookie(request: Request, name: string): string | null {
   return found ? decodeURIComponent(found.slice(name.length + 1)) : null;
 }
 
-async function currentUser(request: Request, env: Env): Promise<User | null> {
+async function currentUser(request: Request, env: FusionEnv): Promise<User | null> {
   const token = readCookie(request, "fusion_session");
   if (!token) return null;
   const tokenHash = await sha256(token);
@@ -90,7 +84,7 @@ async function currentUser(request: Request, env: Env): Promise<User | null> {
     .bind(tokenHash).first<User>();
 }
 
-async function sendVerificationEmail(env: Env, email: string, url: string): Promise<boolean> {
+async function sendVerificationEmail(env: FusionEnv, email: string, url: string): Promise<boolean> {
   if (!env.RESEND_API_KEY) return false;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -108,7 +102,7 @@ async function sendVerificationEmail(env: Env, email: string, url: string): Prom
   return response.ok;
 }
 
-async function issueVerification(request: Request, env: Env, user: User): Promise<{ url: string; sent: boolean }> {
+async function issueVerification(request: Request, env: FusionEnv, user: User): Promise<{ url: string; sent: boolean }> {
   const token = newToken();
   const tokenHash = await sha256(token);
   await env.DB.batch([
@@ -122,13 +116,13 @@ async function issueVerification(request: Request, env: Env, user: User): Promis
   return { url: url.toString(), sent };
 }
 
-async function requireUser(request: Request, env: Env): Promise<User | Response> {
+async function requireUser(request: Request, env: FusionEnv): Promise<User | Response> {
   return (await currentUser(request, env)) ?? error("Connectez-vous pour continuer.", 401);
 }
 
 function isResponse(value: User | Response): value is Response { return value instanceof Response; }
 
-async function api(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+async function api(request: Request, env: FusionEnv, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method;
@@ -304,4 +298,4 @@ export default {
     if (url.pathname.startsWith("/api/")) return api(request, env, ctx);
     return env.ASSETS.fetch(request);
   },
-} satisfies ExportedHandler<Env>;
+} satisfies ExportedHandler<FusionEnv>;
