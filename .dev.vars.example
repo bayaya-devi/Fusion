@@ -1,0 +1,5 @@
+# Copy this file to .dev.vars. Never commit real credentials.
+APP_ENV=development
+RESEND_API_KEY=re_xxxxxxxxx
+# Use a verified Resend sender in production.
+EMAIL_FROM=Fusion <onboarding@your-verified-domain.com>
