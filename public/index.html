@@ -3,25 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Fusion, votre assistant IA gratuit." />
+    <meta name="description" content="Fusion, votre IAssistant gratuit." />
     <title>Fusion — Votre IA, simplement</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main id="app">
       <section id="auth-view" class="auth-layout">
-        <div class="brand-panel"><a class="logo" href="/">fusion<span>•</span></a><h1>Toutes vos idées<br />dans une seule conversation.</h1><p>Fusion est votre assistant IA gratuit, simple et pensé pour avancer.</p></div>
+        <div class="brand-panel"><a class="logo" href="/">fusion<span>•</span></a><h1>Toutes vos idées<br />dans une seule conversation.</h1><p>Fusion est votre IAssistant gratuit, simple et pensé pour avancer.</p></div>
         <div class="auth-card">
           <div id="auth-tabs" class="tabs"><button class="active" data-tab="login">Connexion</button><button data-tab="register">Créer un compte</button></div>
           <div id="alert" role="alert"></div>
           <form id="login-form" class="form"><label>E-mail<input type="email" name="email" autocomplete="email" required /></label><label>Mot de passe<input type="password" name="password" autocomplete="current-password" minlength="8" required /></label><button class="primary" type="submit">Se connecter</button><button id="resend-button" class="link-button" type="button">Renvoyer l’e-mail de confirmation</button></form>
           <form id="register-form" class="form hidden"><label>Nom<input type="text" name="displayName" autocomplete="name" maxlength="80" required /></label><label>E-mail<input type="email" name="email" autocomplete="email" required /></label><label>Mot de passe<input type="password" name="password" autocomplete="new-password" minlength="8" required /></label><button class="primary" type="submit">Créer mon compte</button></form>
-          <p class="legal">En continuant, vous acceptez de recevoir l’e-mail nécessaire à la confirmation de votre compte.</p>
+          <button id="guest-button" class="link-button guest-button" type="button">Essayer Fusion sans compte <span>→</span></button><p class="legal">Le mode découverte est temporaire : vos échanges ne sont pas enregistrés. En continuant, vous acceptez de recevoir l’e-mail nécessaire à la confirmation de votre compte.</p>
         </div>
       </section>
       <section id="chat-view" class="hidden app-layout">
         <aside class="sidebar"><div class="sidebar-top"><a class="logo" href="/">fusion<span>•</span></a><button id="new-chat" class="new-chat">＋ Nouvelle discussion</button></div><nav id="conversation-list" aria-label="Conversations"></nav><div class="ad-slot sidebar-ad"><small>Publicité</small><span>Emplacement sponsorisé</span></div><div class="account-row"><button id="profile-button" class="profile-button"></button><button id="logout-button" class="icon-button" title="Se déconnecter">↪</button></div></aside>
-        <section class="chat-panel"><header><div><p class="eyebrow">Assistant IA</p><h2 id="chat-title">Nouvelle conversation</h2></div><button id="delete-chat" class="icon-button" title="Supprimer la conversation">⌫</button></header><div class="ad-slot top-ad"><small>Publicité</small><span>Un espace réservé à une annonce utile.</span></div><div id="messages" class="messages"><div class="welcome"><div class="spark">✦</div><h1>Bonjour, <span id="user-name"></span></h1><p>Que pouvons-nous créer aujourd’hui ?</p></div></div><form id="message-form" class="composer"><textarea id="message-input" placeholder="Écrivez votre message…" rows="1" maxlength="4000" required></textarea><button class="send" type="submit" aria-label="Envoyer">↑</button></form><p class="chat-note">Fusion peut faire des erreurs. Vérifiez les informations importantes.</p></section>
+        <section class="chat-panel"><header><div><p class="eyebrow">IAssistant</p><h2 id="chat-title">Nouvelle conversation</h2></div><button id="delete-chat" class="icon-button" title="Supprimer la conversation">⌫</button></header><div class="ad-slot top-ad"><small>Publicité</small><span>Un espace réservé à une annonce utile.</span></div><div id="messages" class="messages"><div class="welcome"><div class="spark">✦</div><h1>Bonjour, <span id="user-name"></span></h1><p>Que pouvons-nous créer aujourd’hui ?</p></div></div><form id="message-form" class="composer"><textarea id="message-input" placeholder="Écrivez votre message…" rows="1" maxlength="4000" required></textarea><button class="send" type="submit" aria-label="Envoyer">↑</button></form><p class="chat-note">Fusion peut faire des erreurs. Vérifiez les informations importantes.</p></section>
       </section>
     </main>
     <dialog id="profile-dialog"><form id="profile-form" method="dialog"><button class="dialog-close" value="cancel">×</button><h2>Mon compte</h2><label>Nom<input id="profile-name" name="displayName" maxlength="80" required /></label><label>E-mail<input id="profile-email" disabled /></label><button class="primary" value="default">Enregistrer</button><button id="delete-account" class="danger" type="button">Supprimer mon compte</button></form></dialog>

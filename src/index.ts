@@ -129,6 +129,27 @@ async function api(request: Request, env: FusionEnv, ctx: ExecutionContext): Pro
 
   if (path === "/api/health") return json({ ok: true, app: env.APP_NAME });
 
+  // Mode découverte : aucune conversation ni donnée personnelle n'est conservée.
+  if (path === "/api/guest/chat" && method === "POST") {
+    const body = await requestJson(request);
+    const content = body ? stringField(body, "content", 1_500) : null;
+    if (!content) return error("Votre message est vide ou trop long.");
+    try {
+      const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
+        messages: [
+          { role: "assistant", content: "Tu es Fusion, un IAssistant utile et francophone. Réponds avec clarté." },
+          { role: "user", content },
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      });
+      return json({ message: { id: crypto.randomUUID(), role: "assistant", content: result.response?.trim() || "Je n'ai pas pu générer une réponse.", created_at: new Date().toISOString() } });
+    } catch (cause) {
+      console.error(JSON.stringify({ event: "guest_ai_generation_failed", cause: cause instanceof Error ? cause.message : "unknown" }));
+      return error("Le modèle est momentanément indisponible. Réessayez dans un instant.", 503);
+    }
+  }
+
   if (path === "/api/auth/register" && method === "POST") {
     const body = await requestJson(request);
     if (!body) return error("Données invalides.");
@@ -262,7 +283,7 @@ async function api(request: Request, env: FusionEnv, ctx: ExecutionContext): Pro
       const history = await env.DB.prepare("SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 12")
         .bind(conversationId).all<ChatMessage>();
       const messages: ChatMessage[] = [
-        { role: "assistant", content: "Tu es Fusion, un assistant utile, précis et francophone. Réponds avec clarté." },
+        { role: "assistant", content: "Tu es Fusion, un IAssistant utile, précis et francophone. Réponds avec clarté." },
         ...history.results.reverse(),
       ];
       try {

@@ -1,4 +1,4 @@
-const state = { user: null, conversations: [], activeId: null };
+const state = { user: null, conversations: [], activeId: null, guest: false };
 const $ = (selector) => document.querySelector(selector);
 const alertBox = $("#alert");
 
@@ -15,7 +15,7 @@ function showAlert(message, type = "success") {
   alertBox.className = `alert ${type}`;
 }
 function clearAlert() { alertBox.className = ""; alertBox.textContent = ""; }
-function showApp(isLoggedIn) { $("#auth-view").classList.toggle("hidden", isLoggedIn); $("#chat-view").classList.toggle("hidden", !isLoggedIn); }
+function showApp(isLoggedIn) { $("#auth-view").classList.toggle("hidden", isLoggedIn); $("#chat-view").classList.toggle("hidden", !isLoggedIn); document.body.classList.toggle("guest-mode", state.guest); }
 
 function setTab(tab) {
   document.querySelectorAll("#auth-tabs button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
@@ -53,6 +53,7 @@ async function loadConversations() {
 }
 
 async function newConversation() {
+  if (state.guest) { state.activeId = null; $("#chat-title").textContent = "Mode découverte"; resetMessages(); $("#message-input").focus(); return; }
   const { conversation } = await request("/api/conversations", { method: "POST", body: JSON.stringify({}) });
   state.conversations.unshift(conversation);
   state.activeId = conversation.id;
@@ -70,6 +71,12 @@ async function openConversation(id) {
 }
 
 async function sendMessage(content) {
+  if (state.guest) {
+    $(".welcome")?.remove(); renderMessage({ role: "user", content });
+    const sending = document.createElement("article"); sending.className = "message assistant pending"; sending.innerHTML = `<div class="avatar">✦</div><div class="bubble">Fusion réfléchit<span class="dots">…</span></div>`; $("#messages").append(sending);
+    try { const { message } = await request("/api/guest/chat", { method: "POST", body: JSON.stringify({ content }) }); sending.remove(); renderMessage(message); } catch (err) { sending.remove(); renderMessage({ role: "assistant", content: err.message }); }
+    return;
+  }
   if (!state.activeId) await newConversation();
   $(".welcome")?.remove();
   renderMessage({ role: "user", content });
@@ -85,7 +92,7 @@ async function initialise() {
   const verified = new URLSearchParams(location.search).get("verified");
   try {
     const { user } = await request("/api/me");
-    state.user = user; showApp(true); $("#user-name").textContent = user.displayName; $("#profile-button").textContent = user.displayName; await loadConversations();
+    state.guest = false; state.user = user; showApp(true); $("#user-name").textContent = user.displayName; $("#profile-button").textContent = user.displayName; await loadConversations();
     if (state.conversations.length) await openConversation(state.conversations[0].id); else resetMessages();
   } catch { showApp(false); if (verified) showAlert("Adresse e-mail confirmée. Vous pouvez maintenant vous connecter."); }
 }
@@ -94,12 +101,13 @@ document.querySelectorAll("#auth-tabs button").forEach((button) => button.addEve
 $("#login-form").addEventListener("submit", async (event) => { event.preventDefault(); clearAlert(); const form = new FormData(event.currentTarget); try { await request("/api/auth/login", { method: "POST", body: JSON.stringify(Object.fromEntries(form)) }); await initialise(); } catch (err) { showAlert(err.message, "error"); } });
 $("#register-form").addEventListener("submit", async (event) => { event.preventDefault(); clearAlert(); const form = new FormData(event.currentTarget); try { const data = await request("/api/auth/register", { method: "POST", body: JSON.stringify(Object.fromEntries(form)) }); showAlert(data.developmentConfirmationUrl ? `${data.message} Lien de test : ${data.developmentConfirmationUrl}` : data.message); setTab("login"); } catch (err) { showAlert(err.message, "error"); } });
 $("#resend-button").addEventListener("click", async () => { const email = $("#login-form [name=email]").value; if (!email) return showAlert("Saisissez votre e-mail, puis réessayez.", "error"); try { const data = await request("/api/auth/resend", { method: "POST", body: JSON.stringify({ email }) }); showAlert(data.developmentConfirmationUrl ? `${data.message} Lien de test : ${data.developmentConfirmationUrl}` : data.message); } catch (err) { showAlert(err.message, "error"); } });
+$("#guest-button").addEventListener("click", () => { state.guest = true; state.user = { displayName: "visiteur", email: "" }; state.activeId = null; state.conversations = []; showApp(true); $("#user-name").textContent = "visiteur"; $("#profile-button").textContent = "Créer un compte"; $("#chat-title").textContent = "Mode découverte"; resetMessages(); });
 $("#new-chat").addEventListener("click", newConversation);
 $("#message-form").addEventListener("submit", async (event) => { event.preventDefault(); const input = $("#message-input"); const content = input.value.trim(); if (!content) return; input.value = ""; input.style.height = "auto"; await sendMessage(content); });
 $("#message-input").addEventListener("input", (event) => { event.currentTarget.style.height = "auto"; event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 160)}px`; });
-$("#logout-button").addEventListener("click", async () => { await request("/api/auth/logout", { method: "POST" }); location.href = "/"; });
+$("#logout-button").addEventListener("click", async () => { if (state.guest) return location.assign("/"); await request("/api/auth/logout", { method: "POST" }); location.href = "/"; });
 $("#delete-chat").addEventListener("click", async () => { if (!state.activeId || !confirm("Supprimer cette conversation ?")) return; await request(`/api/conversations/${state.activeId}`, { method: "DELETE" }); state.activeId = null; await loadConversations(); if (state.conversations.length) openConversation(state.conversations[0].id); else { $("#chat-title").textContent = "Nouvelle conversation"; resetMessages(); } });
-$("#profile-button").addEventListener("click", () => { $("#profile-name").value = state.user.displayName; $("#profile-email").value = state.user.email; $("#profile-dialog").showModal(); });
+$("#profile-button").addEventListener("click", () => { if (state.guest) { state.guest = false; showApp(false); setTab("register"); return; } $("#profile-name").value = state.user.displayName; $("#profile-email").value = state.user.email; $("#profile-dialog").showModal(); });
 $("#profile-form").addEventListener("submit", async (event) => { event.preventDefault(); const displayName = $("#profile-name").value; try { const { user } = await request("/api/me", { method: "PATCH", body: JSON.stringify({ displayName }) }); state.user = user; $("#user-name").textContent = user.displayName; $("#profile-button").textContent = user.displayName; $("#profile-dialog").close(); } catch (err) { alert(err.message); } });
 $("#delete-account").addEventListener("click", async () => { if (!confirm("Supprimer définitivement votre compte et vos conversations ?")) return; await request("/api/me", { method: "DELETE" }); location.href = "/"; });
 initialise();
