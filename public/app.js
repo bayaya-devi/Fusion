@@ -15,7 +15,12 @@ function showAlert(message, type = "success") {
   alertBox.className = `alert ${type}`;
 }
 function clearAlert() { alertBox.className = ""; alertBox.textContent = ""; }
-function showApp(isLoggedIn) { $("#auth-view").classList.toggle("hidden", isLoggedIn); $("#chat-view").classList.toggle("hidden", !isLoggedIn); document.body.classList.toggle("guest-mode", state.guest); }
+function showApp(isLoggedIn) { $("#auth-view").classList.toggle("hidden", isLoggedIn); $("#chat-view").classList.toggle("hidden", !isLoggedIn); $("#guest-notice").classList.toggle("hidden", !state.guest); document.body.classList.toggle("guest-mode", state.guest); }
+
+function enterGuestMode() {
+  state.guest = true; state.user = { displayName: "visiteur", email: "" }; state.activeId = null; state.conversations = [];
+  showApp(true); $("#user-name").textContent = "visiteur"; $("#profile-button").textContent = "Créer un compte"; $("#chat-title").textContent = "Mode découverte"; resetMessages();
+}
 
 function setTab(tab) {
   document.querySelectorAll("#auth-tabs button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
@@ -94,14 +99,15 @@ async function initialise() {
     const { user } = await request("/api/me");
     state.guest = false; state.user = user; showApp(true); $("#user-name").textContent = user.displayName; $("#profile-button").textContent = user.displayName; await loadConversations();
     if (state.conversations.length) await openConversation(state.conversations[0].id); else resetMessages();
-  } catch { showApp(false); if (verified) showAlert("Adresse e-mail confirmée. Vous pouvez maintenant vous connecter."); }
+  } catch { enterGuestMode(); if (verified) { state.guest = false; showApp(false); showAlert("Adresse e-mail confirmée. Vous pouvez maintenant vous connecter."); } }
 }
 
 document.querySelectorAll("#auth-tabs button").forEach((button) => button.addEventListener("click", () => setTab(button.dataset.tab)));
 $("#login-form").addEventListener("submit", async (event) => { event.preventDefault(); clearAlert(); const form = new FormData(event.currentTarget); try { await request("/api/auth/login", { method: "POST", body: JSON.stringify(Object.fromEntries(form)) }); await initialise(); } catch (err) { showAlert(err.message, "error"); } });
 $("#register-form").addEventListener("submit", async (event) => { event.preventDefault(); clearAlert(); const form = new FormData(event.currentTarget); try { const data = await request("/api/auth/register", { method: "POST", body: JSON.stringify(Object.fromEntries(form)) }); showAlert(data.developmentConfirmationUrl ? `${data.message} Lien de test : ${data.developmentConfirmationUrl}` : data.message); setTab("login"); } catch (err) { showAlert(err.message, "error"); } });
 $("#resend-button").addEventListener("click", async () => { const email = $("#login-form [name=email]").value; if (!email) return showAlert("Saisissez votre e-mail, puis réessayez.", "error"); try { const data = await request("/api/auth/resend", { method: "POST", body: JSON.stringify({ email }) }); showAlert(data.developmentConfirmationUrl ? `${data.message} Lien de test : ${data.developmentConfirmationUrl}` : data.message); } catch (err) { showAlert(err.message, "error"); } });
-$("#guest-button").addEventListener("click", () => { state.guest = true; state.user = { displayName: "visiteur", email: "" }; state.activeId = null; state.conversations = []; showApp(true); $("#user-name").textContent = "visiteur"; $("#profile-button").textContent = "Créer un compte"; $("#chat-title").textContent = "Mode découverte"; resetMessages(); });
+$("#guest-button").addEventListener("click", enterGuestMode);
+$("#guest-signin").addEventListener("click", () => { state.guest = false; showApp(false); setTab("login"); });
 $("#new-chat").addEventListener("click", newConversation);
 $("#message-form").addEventListener("submit", async (event) => { event.preventDefault(); const input = $("#message-input"); const content = input.value.trim(); if (!content) return; input.value = ""; input.style.height = "auto"; await sendMessage(content); });
 $("#message-input").addEventListener("input", (event) => { event.currentTarget.style.height = "auto"; event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 160)}px`; });

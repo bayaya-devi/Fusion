@@ -27,7 +27,9 @@
 	"vars": {
 		"APP_ENV": "production",
 		"APP_NAME": "Fusion",
-		"EMAIL_FROM": "Fusion <onboarding@resend.dev>"
+		"EMAIL_FROM": "Fusion <onboarding@resend.dev>",
+		"REPLY_TO": "aetbconseil@gmail.com",
+		"ADMIN_EMAIL": "aetbconseil@gmail.com"
 	},
 	"observability": {
 		"enabled": true,

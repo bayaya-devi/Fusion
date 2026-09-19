@@ -1,0 +1,28 @@
+.guest-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px 24px 0;
+  padding: 12px 16px;
+  border: 1px solid #d9d4ff;
+  border-radius: 12px;
+  background: #f5f3ff;
+  color: #332e66;
+  font-size: .92rem;
+}
+
+.guest-notice button {
+  flex: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #6855ff;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .guest-notice { align-items: flex-start; flex-direction: column; margin: 12px 14px 0; }
+}

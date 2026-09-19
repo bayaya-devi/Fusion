@@ -92,6 +92,7 @@ async function sendVerificationEmail(env: FusionEnv, email: string, url: string)
     body: JSON.stringify({
       from: env.EMAIL_FROM,
       to: [email],
+      reply_to: env.REPLY_TO,
       subject: `Confirmez votre adresse e-mail — ${env.APP_NAME}`,
       html: `<main style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h1>Bienvenue sur ${env.APP_NAME}</h1><p>Confirmez votre adresse e-mail pour activer votre compte.</p><p><a href="${url}" style="display:inline-block;padding:12px 18px;background:#6855ff;color:#fff;border-radius:8px;text-decoration:none">Confirmer mon e-mail</a></p><p>Ce lien expire dans 24 heures.</p></main>`,
     }),
