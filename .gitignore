@@ -5,3 +5,5 @@ worker-configuration.d.ts
 dist/
 npm-install.out.log
 npm-install.err.log
+cloudflare-login.out.log
+cloudflare-login.err.log
