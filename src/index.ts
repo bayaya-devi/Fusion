@@ -103,6 +103,23 @@ async function sendVerificationEmail(env: FusionEnv, email: string, url: string)
   return response.ok;
 }
 
+async function sendPasswordResetEmail(env: FusionEnv, email: string, url: string): Promise<boolean> {
+  if (!env.RESEND_API_KEY) return false;
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: env.EMAIL_FROM,
+      to: [email],
+      reply_to: env.REPLY_TO,
+      subject: `Réinitialisez votre mot de passe — ${env.APP_NAME}`,
+      html: `<main style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h1>Réinitialisation du mot de passe</h1><p>Utilisez ce lien pour choisir un nouveau mot de passe.</p><p><a href="${url}" style="display:inline-block;padding:12px 18px;background:#6855ff;color:#fff;border-radius:8px;text-decoration:none">Réinitialiser mon mot de passe</a></p><p>Ce lien expire dans une heure. Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.</p></main>`,
+    }),
+  });
+  if (!response.ok) console.error(JSON.stringify({ event: "password_reset_email_failed", status: response.status }));
+  return response.ok;
+}
+
 async function issueVerification(request: Request, env: FusionEnv, user: User): Promise<{ url: string; sent: boolean }> {
   const token = newToken();
   const tokenHash = await sha256(token);
@@ -184,6 +201,44 @@ async function api(request: Request, env: FusionEnv, ctx: ExecutionContext): Pro
       return json(payload);
     }
     return json({ message: "Si un compte attend confirmation, un nouvel e-mail a été envoyé." });
+  }
+
+  if (path === "/api/auth/forgot-password" && method === "POST") {
+    const body = await requestJson(request);
+    const email = body ? stringField(body, "email", 254)?.toLowerCase() : null;
+    if (email) {
+      const user = await env.DB.prepare("SELECT id, email FROM users WHERE email = ?").bind(email).first<{ id: string; email: string }>();
+      if (user) {
+        const token = newToken();
+        await env.DB.batch([
+          env.DB.prepare("DELETE FROM password_resets WHERE user_id = ?").bind(user.id),
+          env.DB.prepare("INSERT INTO password_resets (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)")
+            .bind(crypto.randomUUID(), user.id, await sha256(token), expiry(1)),
+        ]);
+        const resetUrl = new URL("/", request.url);
+        resetUrl.searchParams.set("reset", token);
+        await sendPasswordResetEmail(env, user.email, resetUrl.toString());
+      }
+    }
+    return json({ message: "Si cette adresse possède un compte, un lien de réinitialisation a été envoyé." });
+  }
+
+  if (path === "/api/auth/reset-password" && method === "POST") {
+    const body = await requestJson(request);
+    const token = body ? stringField(body, "token", 200) : null;
+    const password = body ? stringField(body, "password", 200) : null;
+    if (!token || !password || password.length < 8) return error("Le lien ou le mot de passe est invalide. Utilisez au moins 8 caractères.");
+    const reset = await env.DB.prepare("SELECT user_id FROM password_resets WHERE token_hash = ? AND expires_at > CURRENT_TIMESTAMP")
+      .bind(await sha256(token)).first<{ user_id: string }>();
+    if (!reset) return error("Ce lien de réinitialisation est invalide ou a expiré.", 410);
+    const credentials = await passwordHash(password);
+    await env.DB.batch([
+      env.DB.prepare("UPDATE users SET password_hash = ?, password_salt = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+        .bind(credentials.hash, credentials.salt, reset.user_id),
+      env.DB.prepare("DELETE FROM password_resets WHERE user_id = ?").bind(reset.user_id),
+      env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(reset.user_id),
+    ]);
+    return json({ message: "Mot de passe modifié. Vous pouvez maintenant vous connecter." });
   }
 
   if (path === "/api/auth/verify" && method === "GET") {

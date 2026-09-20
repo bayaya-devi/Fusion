@@ -26,6 +26,7 @@ function setTab(tab) {
   document.querySelectorAll("#auth-tabs button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   $("#login-form").classList.toggle("hidden", tab !== "login");
   $("#register-form").classList.toggle("hidden", tab !== "register");
+  $("#reset-form").classList.toggle("hidden", tab !== "reset");
   clearAlert();
 }
 
@@ -95,6 +96,8 @@ async function sendMessage(content) {
 
 async function initialise() {
   const verified = new URLSearchParams(location.search).get("verified");
+  const resetToken = new URLSearchParams(location.search).get("reset");
+  if (resetToken) { state.guest = false; showApp(false); setTab("reset"); return; }
   try {
     const { user } = await request("/api/me");
     state.guest = false; state.user = user; showApp(true); $("#user-name").textContent = user.displayName; $("#profile-button").textContent = user.displayName; await loadConversations();
@@ -106,6 +109,8 @@ document.querySelectorAll("#auth-tabs button").forEach((button) => button.addEve
 $("#login-form").addEventListener("submit", async (event) => { event.preventDefault(); clearAlert(); const form = new FormData(event.currentTarget); try { await request("/api/auth/login", { method: "POST", body: JSON.stringify(Object.fromEntries(form)) }); await initialise(); } catch (err) { showAlert(err.message, "error"); } });
 $("#register-form").addEventListener("submit", async (event) => { event.preventDefault(); clearAlert(); const form = new FormData(event.currentTarget); try { const data = await request("/api/auth/register", { method: "POST", body: JSON.stringify(Object.fromEntries(form)) }); showAlert(data.developmentConfirmationUrl ? `${data.message} Lien de test : ${data.developmentConfirmationUrl}` : data.message); setTab("login"); } catch (err) { showAlert(err.message, "error"); } });
 $("#resend-button").addEventListener("click", async () => { const email = $("#login-form [name=email]").value; if (!email) return showAlert("Saisissez votre e-mail, puis réessayez.", "error"); try { const data = await request("/api/auth/resend", { method: "POST", body: JSON.stringify({ email }) }); showAlert(data.developmentConfirmationUrl ? `${data.message} Lien de test : ${data.developmentConfirmationUrl}` : data.message); } catch (err) { showAlert(err.message, "error"); } });
+$("#forgot-button").addEventListener("click", async () => { const email = $("#login-form [name=email]").value; if (!email) return showAlert("Saisissez votre e-mail pour recevoir le lien.", "error"); try { const data = await request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }); showAlert(data.message); } catch (err) { showAlert(err.message, "error"); } });
+$("#reset-form").addEventListener("submit", async (event) => { event.preventDefault(); const token = new URLSearchParams(location.search).get("reset"); const password = new FormData(event.currentTarget).get("password"); try { const data = await request("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) }); history.replaceState({}, "", "/"); setTab("login"); showAlert(data.message); } catch (err) { showAlert(err.message, "error"); } });
 $("#guest-button").addEventListener("click", enterGuestMode);
 $("#guest-signin").addEventListener("click", () => { state.guest = false; showApp(false); setTab("login"); });
 $("#new-chat").addEventListener("click", newConversation);
